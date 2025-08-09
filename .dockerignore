@@ -1,0 +1,62 @@
+# Docker build context optimization
+# Rust target directory (build artifacts)
+target/
+debug/
+release/
+
+# Dependency directories
+deps/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+docs/
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Docker files (don't copy into build context)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Environment files (security)
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Runtime directories that will be mounted
+chapters/
+
+# Test files
+tests/
+test_data/
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+tmp/
+temp/

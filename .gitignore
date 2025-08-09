@@ -1,0 +1,70 @@
+###################################
+# Global Git ignore for Chapter API
+###################################
+
+# Rust build artifacts
+/target/
+/chapter-api/target/
+**/target/
+debug/
+release/
+*.rlib
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Cargo
+# Keep Cargo.lock tracked for binaries/apps
+# !Cargo.lock
+
+# Chapters content (large, generated/ingested data)
+chapter-api/chapters/
+chapters/
+!chapters/.gitkeep
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Editors / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+*.backup
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node (if used for rag-api or future UI)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.next/
+
+# Python (if used for rag-api)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.mypy_cache/
+
+# Coverage/Reports
+coverage/
+htmlcov/

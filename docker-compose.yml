@@ -1,0 +1,99 @@
+# Modern Docker Compose file (version field is obsolete)
+services:
+  redis:
+    image: redis/redis-stack:latest
+    container_name: chapter-redis
+    ports:
+      - "6380:6379"
+      - "8002:8001"  # Redis Insight UI
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_ARGS=--save 60 1000
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chapter-api
+    depends_on:
+      - redis
+      - rag-api
+    environment:
+      - RUST_BACKTRACE=1
+      - RUST_LOG=info,tower_http=info,chapter_api=info
+      - REDIS_URL=redis://chapter-redis:6379
+      - CHAPTERS_DIR=/tmp/chapters
+      - PORT=3000
+      - AUTO_LOAD=true
+      - RAG_SERVICE_URL=http://rag-api:8001
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./chapters:/tmp/chapters  # Shared chapters directory for all services
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  rag-api:
+    build:
+      context: ./rag-api
+      dockerfile: Dockerfile
+    container_name: rag-api
+    depends_on:
+      - qdrant
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-intfloat/e5-large-v2}
+      - RERANKER_MODEL=${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
+      - CHUNK_SIZE=${CHUNK_SIZE:-512}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-50}
+      - BATCH_SIZE=${BATCH_SIZE:-32}
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./chapters:/app/chapters
+      - ./rag-api/data:/app/data
+      - ./qdrant_data:/app/qdrant_data
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: rag_qdrant
+    ports:
+      - "6333:6333"      # REST API port
+      - "6334:6334"      # gRPC port
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    restart: unless-stopped
+    networks:
+      - app-network
+
+# Named volumes for persistent data
+volumes:
+  redis_data:
+
+# Network for service communication
+networks:
+  app-network:
+    driver: bridge

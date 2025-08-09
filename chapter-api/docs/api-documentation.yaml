@@ -1,0 +1,1363 @@
+openapi: 3.0.3
+info:
+  title: Chapter API - Immersive Reading Platform
+  description: |
+    A comprehensive API for immersive novel reading with RAG-powered analysis, mood detection, voice narration, and mystery solving features.
+    
+    ## Features
+    - **Chapter Management**: Retrieve chapters with full content or summaries
+    - **Immersive Reading**: Mood analysis, voice narration, emotional journey tracking
+    - **Mystery Solver**: Clue detection, theory generation, foreshadowing analysis
+    - **Smart Search**: Find chapters by title with fuzzy matching
+    - **RAG Integration**: Contextual Q&A about the story
+    - **Batch Operations**: Efficient multi-chapter retrieval
+    - **Smart Caching**: RAG-powered analysis with fast performance
+    
+  version: 1.0.0
+  contact:
+    name: Chapter API Support
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Health & Stats
+    description: System health and statistics
+  - name: Chapters
+    description: Basic chapter retrieval operations
+  - name: Search
+    description: Chapter search functionality
+  - name: Immersive Reading
+    description: Enhanced reading experience with mood, voice, and emotional analysis
+  - name: Mystery Solver
+    description: Clue detection and theory generation
+  - name: Contextual Q&A
+    description: RAG-powered story questions and answers
+  - name: Cache Management
+    description: Smart cache control for RAG-powered features
+  - name: Admin
+    description: Administrative operations
+
+paths:
+  # Health & Stats
+  /health:
+    get:
+      tags: [Health & Stats]
+      summary: Health check
+      description: Check if the API is running and healthy
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data: "API is healthy"
+
+  /stats:
+    get:
+      tags: [Health & Stats]
+      summary: API statistics
+      description: Get system statistics and performance metrics
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ApiStats'
+
+  # Basic Chapters
+  /chapters/{number}:
+    get:
+      tags: [Chapters]
+      summary: Get single chapter
+      description: Retrieve a single chapter with full content or summary
+      parameters:
+        - name: number
+          in: path
+          required: true
+          description: Chapter number to retrieve
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+        - name: summary
+          in: query
+          description: Return only summary without paragraph content
+          schema:
+            type: boolean
+            default: false
+          example: true
+      responses:
+        '200':
+          description: Chapter retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/Chapter'
+                          - $ref: '#/components/schemas/ChapterSummary'
+        '404':
+          description: Chapter not found
+        '500':
+          description: Internal server error
+
+  /chapters:
+    get:
+      tags: [Chapters]
+      summary: Get chapter batch
+      description: Retrieve multiple chapters efficiently
+      parameters:
+        - name: start
+          in: query
+          description: Starting chapter number
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+        - name: end
+          in: query
+          description: Ending chapter number
+          schema:
+            type: integer
+            minimum: 1
+          example: 10
+        - name: limit
+          in: query
+          description: Maximum number of chapters to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          example: 10
+        - name: summary
+          in: query
+          description: Return only summaries without paragraph content
+          schema:
+            type: boolean
+            default: false
+          example: true
+      responses:
+        '200':
+          description: Chapters retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/ChapterBatch'
+                          - $ref: '#/components/schemas/ChapterBatchSummary'
+
+  # Search
+  /search:
+    get:
+      tags: [Search]
+      summary: Search chapters
+      description: Search chapters by title with fuzzy matching (returns summaries only)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query for chapter titles
+          schema:
+            type: string
+          example: "crimson"
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 10
+      responses:
+        '200':
+          description: Search results retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SearchResult'
+
+  # Immersive Reading
+  /immersive/chapters/{number}:
+    get:
+      tags: [Immersive Reading]
+      summary: Get immersive chapter
+      description: Get chapter with full immersive reading features including mood analysis, voice narration, emotional journey, and mystery elements
+      parameters:
+        - name: number
+          in: path
+          required: true
+          description: Chapter number
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+        - name: include_recap
+          in: query
+          description: Include quick recap of previous chapter
+          schema:
+            type: boolean
+            default: false
+        - name: mood_sensitivity
+          in: query
+          description: Adjust sensitivity for mood detection (0-1)
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+        - name: spoiler_tolerance
+          in: query
+          description: Spoiler tolerance level
+          schema:
+            type: string
+            enum: [none, low, medium, high]
+        - name: emotional_tracking
+          in: query
+          description: Include per-character emotional tracking
+          schema:
+            type: boolean
+        - name: mystery_analysis_depth
+          in: query
+          description: Depth of mystery analysis
+          schema:
+            type: string
+            enum: [basic, detailed, comprehensive]
+        - name: voice_preferences
+          in: query
+          description: Voice narration preferences
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/VoicePreferences'
+      responses:
+        '200':
+          description: Immersive chapter data retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ImmersiveModeResponse'
+        '404':
+          description: Chapter not found
+        '500':
+          description: Internal server error
+
+  /immersive/emotions/{number}:
+    get:
+      tags: [Immersive Reading]
+      summary: Get emotional visualization
+      description: Get emotional visualization data for a chapter
+      parameters:
+        - name: number
+          in: path
+          required: true
+          description: Chapter number
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      responses:
+        '200':
+          description: Emotional visualization data retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EmotionalVisualization'
+
+  /immersive/mystery/{number}:
+    get:
+      tags: [Mystery Solver]
+      summary: Get mystery analysis
+      description: Analyze chapter for mystery elements including clues, theories, and foreshadowing
+      parameters:
+        - name: number
+          in: path
+          required: true
+          description: Chapter number
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      responses:
+        '200':
+          description: Mystery analysis retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MysteryElements'
+
+  # Contextual Q&A
+  /immersive/question:
+    post:
+      tags: [Contextual Q&A]
+      summary: Ask contextual question
+      description: Ask questions about the story with RAG-powered responses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContextualQuestion'
+            example:
+              question: "Who is the main character?"
+              current_chapter: 5
+              current_paragraph: 10
+              context_preference: "detailed"
+      responses:
+        '200':
+          description: Question answered successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ContextualQuestionResponse'
+
+  # Cache Management
+  /immersive/cache/refresh:
+    post:
+      tags: [Cache Management]
+      summary: Refresh story cache
+      description: Force refresh of the RAG-powered story cache
+      responses:
+        '200':
+          description: Cache refreshed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: string
+                        example: "Story cache refreshed successfully"
+        '500':
+          description: Cache refresh failed
+
+  /immersive/cache/status:
+    get:
+      tags: [Cache Management]
+      summary: Get cache status
+      description: Get cache status and statistics
+      responses:
+        '200':
+          description: Cache status retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CacheStatus'
+
+  /immersive/analysis/status/{number}:
+    get:
+      tags: [Immersive Reading]
+      summary: Get chapter analysis status
+      description: Check background processing status for a chapter (mystery analysis, recap readiness)
+      parameters:
+        - name: number
+          in: path
+          required: true
+          description: Chapter number
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      responses:
+        '200':
+          description: Analysis status retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ChapterAnalysisStatus'
+
+  # Admin
+  /admin/reload:
+    post:
+      tags: [Admin]
+      summary: Reload chapters
+      description: Reload all chapters from files
+      responses:
+        '200':
+          description: Chapters reloaded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReloadResult'
+        '500':
+          description: Reload failed
+
+  /admin/flush:
+    post:
+      tags: [Admin]
+      summary: Flush chapters
+      description: Delete all chapters from Redis
+      responses:
+        '200':
+          description: Chapters flushed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FlushResult'
+        '500':
+          description: Flush failed
+
+components:
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the request was successful
+        data:
+          description: Response data (varies by endpoint)
+        error:
+          type: string
+          description: Error message if success is false
+      required:
+        - success
+
+    Chapter:
+      type: object
+      properties:
+        index:
+          type: integer
+          description: Internal index (0-based)
+          example: 0
+        number:
+          type: integer
+          description: Chapter number
+          example: 1
+        title:
+          type: string
+          description: Chapter title
+          example: "The Crimson Beginning"
+        url:
+          type: string
+          description: Source URL of the chapter
+          example: "https://example.com/chapters/1"
+        paragraphs:
+          type: array
+          items:
+            type: string
+          description: Chapter content paragraphs (omitted in summary mode)
+        word_count:
+          type: integer
+          description: Total word count
+          example: 1500
+        character_count:
+          type: integer
+          description: Total character count
+          example: 8200
+        paragraph_count:
+          type: integer
+          description: Number of paragraphs
+          example: 42
+        reading_time_minutes:
+          type: number
+          format: float
+          description: Estimated reading time in minutes
+          example: 6.2
+        language:
+          type: string
+          description: Language code
+          example: "en"
+        content_hash:
+          type: string
+          description: Content hash for change detection
+          example: "sha256:abcd1234"
+        prev_chapter:
+          type: string
+          nullable: true
+          description: Slug or identifier of previous chapter
+          example: "chapter-0"
+        next_chapter:
+          type: string
+          nullable: true
+          description: Slug or identifier of next chapter
+          example: "chapter-2"
+        scraped_at:
+          type: string
+          description: Timestamp when chapter was scraped
+          example: "2025-01-15T10:00:00Z"
+        extraction_warnings:
+          type: object
+          nullable: true
+          description: Any extraction warnings captured during scraping
+      required:
+        - number
+        - title
+
+    ImmersiveModeResponse:
+      type: object
+      properties:
+        chapter:
+          $ref: '#/components/schemas/Chapter'
+        mood_analysis:
+          $ref: '#/components/schemas/MoodAnalysis'
+        voice_narration:
+          $ref: '#/components/schemas/VoiceNarration'
+        emotional_journey:
+          $ref: '#/components/schemas/EmotionalJourney'
+        mystery_elements:
+          $ref: '#/components/schemas/MysteryElements'
+        quick_recap:
+          $ref: '#/components/schemas/QuickRecap'
+      required:
+        - chapter
+        - mood_analysis
+        - voice_narration
+        - emotional_journey
+        - mystery_elements
+
+    MoodAnalysis:
+      type: object
+      properties:
+        overall_mood:
+          type: string
+          description: Overall mood of the chapter
+          example: "mysterious"
+        mood_intensity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Intensity of the mood (0-1)
+          example: 0.75
+        background_theme:
+          $ref: '#/components/schemas/BackgroundTheme'
+        paragraph_moods:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParagraphMood'
+        mood_transitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MoodTransition'
+        emotional_peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmotionalPeak'
+
+    ChapterSummary:
+      type: object
+      properties:
+        index:
+          type: integer
+        number:
+          type: integer
+        title:
+          type: string
+        url:
+          type: string
+        word_count:
+          type: integer
+        character_count:
+          type: integer
+        paragraph_count:
+          type: integer
+        reading_time_minutes:
+          type: number
+          format: float
+        language:
+          type: string
+        content_hash:
+          type: string
+        prev_chapter:
+          type: string
+          nullable: true
+        next_chapter:
+          type: string
+          nullable: true
+        scraped_at:
+          type: string
+
+    ChapterBatch:
+      type: object
+      properties:
+        chapters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chapter'
+        total:
+          type: integer
+        start:
+          type: integer
+        end:
+          type: integer
+
+    ChapterBatchSummary:
+      type: object
+      properties:
+        chapters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChapterSummary'
+        total:
+          type: integer
+        start:
+          type: integer
+        end:
+          type: integer
+
+    BackgroundTheme:
+      type: object
+      properties:
+        primary_color:
+          type: string
+          description: Primary background color (hex)
+          example: "#2C1810"
+        secondary_color:
+          type: string
+          description: Secondary background color (hex)
+          example: "#8B0000"
+        gradient_type:
+          type: string
+          description: Gradient type
+          example: "radial"
+        opacity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.6
+        suggested_font_color:
+          type: string
+          description: Suggested font color (hex)
+          example: "#FFFFFF"
+        theme_name:
+          type: string
+          description: Theme name
+          example: "mysterious_dark"
+
+    ParagraphMood:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+          description: Index of the paragraph
+          example: 5
+        mood:
+          type: string
+          description: Mood of the paragraph
+          example: "tense"
+        intensity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.8
+        emotions:
+          type: array
+          items:
+            type: string
+          example: ["anxiety", "curiosity"]
+        tension_level:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.7
+
+    VoiceNarration:
+      type: object
+      properties:
+        narrator_voice:
+          type: string
+          description: Narrator voice type
+          example: "mature_male"
+        character_voices:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CharacterVoice'
+        reading_pace:
+          type: string
+          description: Suggested reading pace
+          example: "normal"
+        emphasis_points:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmphasisPoint'
+        audio_cues:
+          type: array
+          items:
+            $ref: '#/components/schemas/AudioCue'
+
+    CharacterVoice:
+      type: object
+      properties:
+        voice_type:
+          type: string
+          description: Character voice type
+          example: "young_female"
+        accent:
+          type: string
+          nullable: true
+          description: Character accent
+          example: "formal_educated"
+        tone:
+          type: string
+          description: Character tone
+          example: "confident"
+        speaking_pace:
+          type: string
+          description: Speaking pace
+          example: "quick"
+        emotional_range:
+          type: array
+          items:
+            type: string
+          example: ["curious", "determined", "anxious"]
+
+    EmotionalJourney:
+      type: object
+      properties:
+        chapter_arc:
+          $ref: '#/components/schemas/EmotionalArc'
+        character_emotions:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/CharacterEmotion'
+        tension_graph:
+          type: array
+          items:
+            $ref: '#/components/schemas/TensionPoint'
+        emotional_moments:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmotionalMoment'
+        reading_recommendations:
+          $ref: '#/components/schemas/ReadingRecommendations'
+
+    MysteryElements:
+      type: object
+      properties:
+        clues_found:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClueElement'
+        theories_suggested:
+          type: array
+          items:
+            $ref: '#/components/schemas/Theory'
+        connections_discovered:
+          type: array
+          items:
+            $ref: '#/components/schemas/Connection'
+        foreshadowing:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForeshadowingElement'
+        mystery_tracker:
+          $ref: '#/components/schemas/MysteryTracker'
+
+    ClueElement:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+          description: Paragraph containing the clue
+          example: 12
+        clue_type:
+          type: string
+          description: Type of clue
+          example: "object_clue"
+        description:
+          type: string
+          description: Description of the clue
+          example: "Strange notebook with cryptic symbols"
+        importance:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Importance level (0-1)
+          example: 0.8
+        related_mysteries:
+          type: array
+          items:
+            type: string
+          example: ["identity_mystery"]
+        spoiler_level:
+          type: string
+          description: Spoiler risk level
+          example: "low"
+
+    Theory:
+      type: object
+      properties:
+        theory_id:
+          type: string
+          description: Unique theory identifier
+          example: "theory_001"
+        title:
+          type: string
+          description: Theory title
+          example: "Identity Substitution Theory"
+        description:
+          type: string
+          description: Theory description
+          example: "Evidence suggests the protagonist may have replaced someone else"
+        supporting_clues:
+          type: array
+          items:
+            type: string
+          example: ["object_clue", "memory_inconsistency"]
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Theory confidence (0-1)
+          example: 0.7
+        spoiler_risk:
+          type: string
+          description: Spoiler risk level
+          example: "medium"
+
+    EmotionalVisualization:
+      type: object
+      properties:
+        emotion_timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmotionTimelinePoint'
+        tension_curve:
+          type: array
+          items:
+            type: number
+            format: float
+          description: Tension levels throughout the chapter
+          example: [0.2, 0.5, 0.8, 0.6, 0.9]
+        character_emotional_arcs:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/EmotionPoint'
+        mood_color_map:
+          type: array
+          items:
+            $ref: '#/components/schemas/MoodColorPoint'
+
+    CharacterEmotion:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        character_name:
+          type: string
+        emotion:
+          type: string
+        intensity:
+          type: number
+          format: float
+        context:
+          type: string
+
+    ContextualQuestion:
+      type: object
+      properties:
+        question:
+          type: string
+          description: The question to ask
+          example: "Who is the main character?"
+        current_chapter:
+          type: integer
+          description: Current chapter number
+          example: 5
+        current_paragraph:
+          type: integer
+          nullable: true
+          description: Current paragraph index
+          example: 10
+        reading_context:
+          type: array
+          items:
+            type: integer
+          description: Additional chapter numbers to include as context
+          example: [3,4,5]
+        user_reading_history:
+          type: array
+          nullable: true
+          items:
+            type: integer
+          description: Previously read chapter numbers
+      required:
+        - question
+        - current_chapter
+        - reading_context
+
+    ContextualQuestionResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+          description: The answer to the question
+          example: "The main character is Klein Moretti, a transmigrator..."
+        related_paragraphs:
+          type: array
+          items:
+            type: integer
+          description: Relevant paragraph indices
+          example: [8, 9, 10, 11]
+        character_context:
+          type: array
+          items:
+            type: string
+          description: Relevant characters
+          example: ["Klein Moretti", "Zhou Mingrui"]
+        plot_relevance:
+          type: string
+          description: Relevance to main plot
+          example: "high"
+        spoiler_warning:
+          type: string
+          nullable: true
+          description: Spoiler warning if applicable
+        follow_up_suggestions:
+          type: array
+          items:
+            type: string
+          description: Suggested follow-up questions
+          example: ["What is Klein's true identity?", "How did the transmigration happen?"]
+
+    VoicePreferences:
+      type: object
+      properties:
+        narrator_voice_type:
+          type: string
+          example: "mature_male"
+        reading_speed:
+          type: string
+          example: "normal"
+        character_differentiation:
+          type: boolean
+          example: true
+        emotional_expression:
+          type: string
+          example: "balanced"
+
+    ChapterAnalysisStatus:
+      type: object
+      properties:
+        chapter_number:
+          type: integer
+        mystery_analysis_ready:
+          type: boolean
+        recap_ready:
+          type: boolean
+        last_updated:
+          type: string
+        processing_complete:
+          type: boolean
+
+    SearchResult:
+      type: object
+      properties:
+        chapters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChapterSummary'
+        total_found:
+          type: integer
+        query:
+          type: string
+
+    ApiStats:
+      type: object
+      properties:
+        total_chapters:
+          type: integer
+        redis_connected:
+          type: boolean
+        chapters_dir:
+          type: string
+        optimization_notes:
+          type: array
+          items:
+            type: string
+
+    ReloadResult:
+      type: object
+      properties:
+        reloaded_count:
+          type: integer
+        message:
+          type: string
+
+    FlushResult:
+      type: object
+      properties:
+        message:
+          type: string
+        success:
+          type: boolean
+
+    QuickRecap:
+      type: object
+      properties:
+        previous_chapter_summary:
+          type: string
+          description: Brief summary of previous chapter
+          example: "Klein discovers mysterious symbols in an ancient book"
+        key_events:
+          type: array
+          items:
+            type: string
+          description: Key events from previous chapter
+          example: ["Symbol discovery", "Strange dream sequence"]
+        character_status_updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/CharacterUpdate'
+        plot_threads_continuation:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlotThread'
+        emotional_state_from_previous:
+          type: string
+          description: Emotional state from previous chapter
+          example: "mysterious"
+
+    CharacterUpdate:
+      type: object
+      properties:
+        character_name:
+          type: string
+          example: "Klein Moretti"
+        last_known_status:
+          type: string
+          example: "Investigating the mysterious symbols"
+        important_development:
+          type: string
+          nullable: true
+          example: "Discovered hidden room"
+        emotional_state:
+          type: string
+          example: "curious"
+
+    PlotThread:
+      type: object
+      properties:
+        thread_name:
+          type: string
+          example: "Symbol Investigation"
+        status:
+          type: string
+          example: "ongoing"
+        last_development:
+          type: string
+          example: "Found connection to ancient text"
+        continuation_in_current_chapter:
+          type: boolean
+          example: true
+
+    CacheStatus:
+      type: object
+      properties:
+        cache_version:
+          type: integer
+          example: 1
+        last_updated:
+          type: integer
+          format: int64
+          description: Unix timestamp of last update
+          example: 1641234567
+        characters_count:
+          type: integer
+          description: Number of cached characters
+          example: 5
+        mystery_keywords_count:
+          type: integer
+          description: Number of cached mystery keywords
+          example: 15
+        foreshadowing_patterns_count:
+          type: integer
+          description: Number of cached foreshadowing patterns
+          example: 8
+        mood_triggers_count:
+          type: integer
+          description: Number of cached mood triggers
+          example: 12
+
+    # Helper schemas
+    MoodTransition:
+      type: object
+      properties:
+        from_paragraph:
+          type: integer
+        to_paragraph:
+          type: integer
+        transition_type:
+          type: string
+        significance:
+          type: number
+          format: float
+
+    EmotionalPeak:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        peak_type:
+          type: string
+        intensity:
+          type: number
+          format: float
+        description:
+          type: string
+
+    EmphasisPoint:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        text_segment:
+          type: string
+        emphasis_type:
+          type: string
+        reason:
+          type: string
+
+    AudioCue:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        cue_type:
+          type: string
+        description:
+          type: string
+        timing:
+          type: string
+
+    EmotionalArc:
+      type: object
+      properties:
+        start_emotion:
+          type: string
+        end_emotion:
+          type: string
+        arc_type:
+          type: string
+        complexity:
+          type: number
+          format: float
+        emotional_journey_map:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmotionalWaypoint'
+
+    EmotionalWaypoint:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        emotion:
+          type: string
+        intensity:
+          type: number
+          format: float
+        significance:
+          type: string
+
+    TensionPoint:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        tension_level:
+          type: number
+          format: float
+        tension_type:
+          type: string
+        description:
+          type: string
+
+    EmotionalMoment:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        moment_type:
+          type: string
+        intensity:
+          type: number
+          format: float
+        description:
+          type: string
+        suggested_pause:
+          type: boolean
+
+    ReadingRecommendations:
+      type: object
+      properties:
+        suggested_breaks:
+          type: array
+          items:
+            type: integer
+        intense_moments_warning:
+          type: array
+          items:
+            type: integer
+        reading_pace:
+          type: string
+        environment_suggestion:
+          type: string
+
+    Connection:
+      type: object
+      properties:
+        connection_type:
+          type: string
+        current_element:
+          type: string
+        connected_chapter:
+          type: integer
+        connected_element:
+          type: string
+        significance:
+          type: number
+          format: float
+        description:
+          type: string
+
+    ForeshadowingElement:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        element:
+          type: string
+        foreshadow_type:
+          type: string
+        potential_future_relevance:
+          type: string
+        confidence:
+          type: number
+          format: float
+
+    MysteryTracker:
+      type: object
+      properties:
+        active_mysteries:
+          type: array
+          items:
+            type: string
+        resolved_mysteries:
+          type: array
+          items:
+            type: string
+        new_mysteries:
+          type: array
+          items:
+            type: string
+        mystery_complexity:
+          type: number
+          format: float
+
+    EmotionTimelinePoint:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        primary_emotion:
+          type: string
+        intensity:
+          type: number
+          format: float
+        secondary_emotions:
+          type: array
+          items:
+            type: string
+
+    EmotionPoint:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        emotion:
+          type: string
+        intensity:
+          type: number
+          format: float
+
+    MoodColorPoint:
+      type: object
+      properties:
+        paragraph_index:
+          type: integer
+        color:
+          type: string
+          description: Hex color code
+        intensity:
+          type: number
+          format: float
